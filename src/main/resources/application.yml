@@ -7,3 +7,13 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
+  jwt:
+    secret: yourSuperSecretKeyThatShouldBeLongAndRandomForProduction
+    access:
+      token:
+        expiration:
+          ms: 900000     # 15 минут
+    refresh:
+      token:
+        expiration:
+          ms: 604800000  # 7 дней

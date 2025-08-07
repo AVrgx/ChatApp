@@ -24,7 +24,8 @@ public class User {
     @Column(nullable = false)
     private String password;
     @Column(nullable = false)
-    private String role;
+    @Enumerated(EnumType.STRING)
+    private Role role = Role.USER;
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
@@ -34,4 +35,8 @@ public class User {
     )
     @Builder.Default
     private Set<ChatRoom> chatRooms = new HashSet<>();
+
+    public enum Role {
+        USER, ADMIN
+    }
 }

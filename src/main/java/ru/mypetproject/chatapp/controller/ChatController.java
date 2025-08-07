@@ -47,7 +47,7 @@ public class ChatController {
         User user = userRepository.findByUsername(chatMessage.getSender())
                 .orElseThrow(() -> new RuntimeException("User not found " + chatMessage.getSender()));
         // 3. Находим комнату
-        ChatRoom chatRoom = chatRoomRepository.findByName(CHAT_ROOM_NAME)
+        ChatRoom chatRoom = chatRoomRepository.findByName(chatMessage.getRoomId())
                 .orElseThrow(() -> new RuntimeException("Chat room not found"));
 
         // 4. Сохраняем сообщение в БД
@@ -59,7 +59,7 @@ public class ChatController {
                 .build();
         messageRepository.save(message);
         // 5. Рассылаем всем
-        messagingTemplate.convertAndSend("/topic/chat", message);
+        messagingTemplate.convertAndSend("/topic/chat/" + chatMessage.getRoomId(), chatMessage);
     }
 
     // Клиент присоединяется к чату: /app/chat.addUser
@@ -72,7 +72,8 @@ public class ChatController {
         headerAccessor.getSessionAttributes().put("username", chatMessage.getSender());
 
         // Находим комнату
-        ChatRoom chatRoom = chatRoomRepository.findByName(CHAT_ROOM_NAME)
+        String roomId = chatMessage.getRoomId();
+        ChatRoom chatRoom = chatRoomRepository.findByName(roomId)
                 .orElseThrow(() -> new RuntimeException("Chat room not found"));
 
         // Загружаем историю сообщений
@@ -84,6 +85,7 @@ public class ChatController {
                 .content(m.getContent())
                 .timestamp(m.getTimestamp().format(formatter))
                 .type(ChatMessage.MessageType.CHAT)
+                .roomId(roomId)
                 .build()).toList();
 
         // Отправляем историю только новому пользователю
@@ -94,7 +96,7 @@ public class ChatController {
         );
 
         // Оповещаем всех, что пользователь присоединился
-        messagingTemplate.convertAndSend("/topic/public", chatMessage);
+        messagingTemplate.convertAndSend("/topic/chat/" + roomId, chatMessage);
 
     }
 }

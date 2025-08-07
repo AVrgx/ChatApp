@@ -27,6 +27,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/ws/**").permitAll() // Пока разрешим, позже ограничим
+                        .requestMatchers("/", "/chat.html", "/static/**", "/css/**", "/js/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session ->

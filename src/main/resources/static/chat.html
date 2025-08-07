@@ -7,7 +7,7 @@
 </head>
 <body>
 <script>
-  const token = "ваш_jwt_токен"; // полученный при /auth/login
+  const token = "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhbGljZSIsImlhdCI6MTc1NDU0NzQ5NSwiZXhwIjoxNzU0NTQ4Mzk1fQ.SkBO_lDLoJDukpX9kINHu3pprOmraSpXzRi3Q2EnqPnbGZBNi1njivIfUVpcNCp58upPRvEGkIfI0ve0Zrhjtg"; // полученный при /auth/login
   const socket = new SockJS(`http://localhost:8080/ws?token=${token}`);
   const stompClient = Stomp.over(socket);
 

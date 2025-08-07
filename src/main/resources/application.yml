@@ -9,7 +9,7 @@ spring:
       ddl-auto: update
 
 jwt:
-  secret: yourSuperSecretKeyThatShouldBeLongAndRandomForProduction
+  secret: ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ
   access:
     token:
       expiration:

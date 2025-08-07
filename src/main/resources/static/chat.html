@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Chat</title>
+  <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/stompjs@7.0.0/umd/stomp.min.js"></script>
+</head>
+<body>
+<script>
+  const token = "ваш_jwt_токен"; // полученный при /auth/login
+  const socket = new SockJS(`http://localhost:8080/ws?token=${token}`);
+  const stompClient = Stomp.over(socket);
+
+  stompClient.connect({}, function (frame) {
+    console.log('Connected: ' + frame);
+
+    // Подписываемся на новые сообщения
+    stompClient.subscribe('/topic/public', function (message) {
+      const chatMessage = JSON.parse(message.body);
+      console.log(chatMessage);
+    });
+
+    // Подписываемся на историю (только для нас)
+    stompClient.subscribe('/user/queue/history', function (message) {
+      const history = JSON.parse(message.body);
+      console.log('History:', history);
+      history.forEach(msg => console.log(`${msg.sender}: ${msg.content}`));
+    });
+
+    // Отправляем, что пользователь присоединился
+    stompClient.send("/app/chat.addUser", {}, JSON.stringify({
+      sender: "alice",
+      type: 'JOIN'
+    }));
+  });
+</script>
+</body>
+</html>

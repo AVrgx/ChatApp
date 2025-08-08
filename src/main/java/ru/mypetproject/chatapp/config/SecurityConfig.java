@@ -36,6 +36,8 @@ public class SecurityConfig {
                                 "/js/**",
                                 "/favicon.ico"
                         ).permitAll()
+                        .requestMatchers("/api/rooms").permitAll()
+                        .requestMatchers("/api/rooms/**").authenticated()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session ->

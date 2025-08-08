@@ -43,11 +43,5 @@ public class Message {
         return Objects.hash(id);
     }
 
-    @Override
-    public String toString() {
-        return "Message{" +
-               "id=" + id +
-               '\'' +
-               '}';
-    }
+
 }

@@ -54,7 +54,7 @@ public class User {
 
     @Override
     public String toString() {
-        return "Messagw{" +
+        return "User{" +
                "id=" + id +
                ", username='" + username + '\'' +
                '}';

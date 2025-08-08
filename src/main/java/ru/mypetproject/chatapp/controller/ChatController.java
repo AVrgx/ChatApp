@@ -41,6 +41,7 @@ public class ChatController {
     // Клиент отправляет сообщение в /app/chat.sendMessage
     @MessageMapping("/chat.sendMessage")
     public void sendMessage(@Payload ChatMessage chatMessage) {
+        System.out.println("✅ Получено: " + chatMessage);
         // 1. Устанавливаем время
         chatMessage.setTimestamp(LocalDateTime.now().format(formatter));
         // 2. Находим пользователя

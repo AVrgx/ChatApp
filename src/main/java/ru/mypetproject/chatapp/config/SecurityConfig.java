@@ -25,9 +25,17 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/**").permitAll()
-                        .requestMatchers("/ws/**").permitAll() // Пока разрешим, позже ограничим
-                        .requestMatchers("/", "/chat.html", "/static/**", "/css/**", "/js/**").permitAll()
+                        .requestMatchers(
+                                "/auth/**",
+                                "/ws/**", // Пока разрешим, позже ограничим
+                                "/",
+                                "/index.html",
+                                "/chat.html",
+                                "/static/**",
+                                "/css/**",
+                                "/js/**",
+                                "/favicon.ico"
+                        ).permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session ->

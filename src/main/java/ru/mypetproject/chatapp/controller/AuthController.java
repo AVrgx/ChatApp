@@ -43,10 +43,13 @@ public class AuthController {
             return ResponseEntity.badRequest().body("Error: Username is already taken!");
         }
 
+        User.Role role = request.getRole() != null ?
+                User.Role.valueOf(request.getRole()) : User.Role.USER;
+
         User user = User.builder()
                 .username(request.getUsername())
                 .password(passwordEncoder.encode(request.getPassword()))
-
+                .role(role)
                 .build();
         userRepository.save(user);
 

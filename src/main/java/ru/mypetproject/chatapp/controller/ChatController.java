@@ -80,6 +80,17 @@ public class ChatController {
         ChatRoom chatRoom = chatRoomRepository.findByName(roomId)
                 .orElseThrow(() -> new RuntimeException("Chat room not found"));
 
+        // Добавляем пользователя в комнату, если он не в ней
+        User user = userRepository.findByUsername(chatMessage.getSender())
+                .orElseThrow(() -> new RuntimeException("User not found: " + chatMessage.getSender()));
+        if (!chatRoom.getUsers().contains(user)) {
+            chatRoom.getUsers().add(user);
+            user.getChatRooms().add(chatRoom);
+            chatRoomRepository.save(chatRoom);
+            userRepository.save(user);
+            logger.info("Пользователь " + user.getUsername() + " добавлен в комнату " + roomId);
+        }
+
         // Загружаем историю сообщений
         List<Message> messageHistory = messageRepository.findByChatRoomIdOrderByTimestampAsc(chatRoom.getId());
 

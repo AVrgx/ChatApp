@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import ru.mypetproject.chatapp.dto.ChatMessage;
 import ru.mypetproject.chatapp.dto.ChatRoomDto;
@@ -32,10 +33,13 @@ public class ChatRoomController {
     private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm");
 
     @GetMapping
-    public ResponseEntity<List<ChatRoom>> getAllRooms() {
+    public ResponseEntity<List<ChatRoomDto>> getAllRooms() {
         List<ChatRoom> rooms = chatRoomRepository.findAll();
+        List<ChatRoomDto> dtos = rooms.stream()
+                .map(room -> new ChatRoomDto(room.getName()))
+                .collect(Collectors.toList());
         logger.info("Загружены комнаты: " + rooms.size());
-        return ResponseEntity.ok(rooms);
+        return ResponseEntity.ok(dtos);
     }
 
     @GetMapping("/{roomName}/users")
@@ -65,6 +69,7 @@ public class ChatRoomController {
     }
 
     @PostMapping
+    @Transactional
     public ResponseEntity<ChatRoom> createRoom(@RequestBody ChatRoomDto chatRoomDto, @AuthenticationPrincipal UserDetails userDetails) {
         if (chatRoomRepository.findByName(chatRoomDto.getName()).isPresent()) {
             return ResponseEntity.badRequest().build();

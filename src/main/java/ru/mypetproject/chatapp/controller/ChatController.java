@@ -17,10 +17,13 @@ import ru.mypetproject.chatapp.repository.UserRepository;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.logging.Logger;
 
 
 @Controller
 public class ChatController {
+
+    private static final Logger logger = Logger.getLogger(ChatController.class.getName());
 
     @Autowired
     private SimpMessagingTemplate messagingTemplate;

@@ -28,6 +28,10 @@
     <form id="registerForm" class="space-y-4">
       <input id="registerUsername" type="text" placeholder="Имя пользователя" class="w-full p-2 border rounded" required>
       <input id="registerPassword" type="password" placeholder="Пароль" class="w-full p-2 border rounded" required>
+      <select id="registerRole" class="w-full p-2 border rounded" required>
+        <option value="USER">Пользователь</option>
+        <option value="ADMIN">Администратор</option>
+      </select>
       <button type="submit" class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Зарегистрироваться</button>
     </form>
     <p class="mt-2 text-center text-red-500 hidden" id="registerError">Ошибка регистрации</p>
@@ -78,10 +82,11 @@
     e.preventDefault();
     const usernameInput = document.getElementById('registerUsername').value;
     const password = document.getElementById('registerPassword').value;
+    const role = document.getElementById('registerRole').value;
     fetch('http://localhost:8080/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: usernameInput, password: password })
+      body: JSON.stringify({ username: usernameInput, password: password, role: role })
     })
             .then(response => {
               if (!response.ok) throw new Error('Registration failed');
@@ -92,6 +97,7 @@
               showLogin();
               document.getElementById('registerUsername').value = '';
               document.getElementById('registerPassword').value = '';
+              document.getElementById('registerRole').value = 'USER';
             })
             .catch(error => {
               document.getElementById('registerError').classList.remove('hidden');
@@ -178,6 +184,26 @@
             .catch(error => console.error('Error loading users:', error));
   }
 
+  // Загрузка истории сообщений через REST
+  function loadMessages(roomName) {
+    fetch(`http://localhost:8080/api/rooms/${roomName}/messages`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + accessToken
+      }
+    })
+            .then(response => {
+              if (!response.ok) throw new Error('Failed to load messages');
+              return response.json();
+            })
+            .then(messages => {
+              console.log('Получена история сообщений:', messages);
+              messages.forEach(msg => showMessage(msg));
+            })
+            .catch(error => console.error('Error loading messages:', error));
+  }
+
   // Создание комнаты
   function createRoom() {
     const roomName = document.getElementById('roomName').value;
@@ -224,10 +250,12 @@
     document.getElementById('currentRoom').textContent = roomName;
     document.getElementById('chatMessages').innerHTML = '';
     loadUsers(roomName);
+    loadMessages(roomName); // Загрузка истории через REST
 
-    // Подписка на историю сообщений
+    // Подписка на историю сообщений через WebSocket
     stompClient.subscribe('/user/queue/history', function (message) {
       const history = JSON.parse(message.body);
+      console.log('Получена история сообщений через WebSocket:', history);
       history.forEach(msg => showMessage(msg));
     });
 
@@ -235,7 +263,7 @@
     stompClient.subscribe('/topic/chat/' + roomName, function (message) {
       const msg = JSON.parse(message.body);
       showMessage(msg);
-      if (msg.type === 'JOIN') loadUsers(roomName); // Обновить список участников
+      if (msg.type === 'JOIN') loadUsers(roomName);
     });
 
     // Отправка сообщения о присоединении

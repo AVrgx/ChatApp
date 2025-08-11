@@ -38,6 +38,7 @@ public class SecurityConfig {
                         ).permitAll()
                         .requestMatchers("/api/rooms").permitAll()
                         .requestMatchers("/api/rooms/**").authenticated()
+                        .requestMatchers("/api/rooms/**").hasAnyRole("USER", "ADMIN")
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session ->

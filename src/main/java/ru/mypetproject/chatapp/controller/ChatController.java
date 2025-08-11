@@ -1,5 +1,6 @@
 package ru.mypetproject.chatapp.controller;
 
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
@@ -68,6 +69,7 @@ public class ChatController {
 
     // Клиент присоединяется к чату: /app/chat.addUser
     @MessageMapping("/chat.addUser")
+    @Transactional
     public void addUser(@Payload ChatMessage chatMessage, SimpMessageHeaderAccessor headerAccessor) {
         chatMessage.setType(ChatMessage.MessageType.JOIN);
         chatMessage.setTimestamp(LocalDateTime.now().format(formatter));
@@ -75,14 +77,15 @@ public class ChatController {
         // Сохраняем имя в сессии
         headerAccessor.getSessionAttributes().put("username", chatMessage.getSender());
 
-        // Находим комнату
+        // Находим комнату и пользователя
         String roomId = chatMessage.getRoomId();
         ChatRoom chatRoom = chatRoomRepository.findByName(roomId)
                 .orElseThrow(() -> new RuntimeException("Chat room not found"));
 
-        // Добавляем пользователя в комнату, если он не в ней
         User user = userRepository.findByUsername(chatMessage.getSender())
                 .orElseThrow(() -> new RuntimeException("User not found: " + chatMessage.getSender()));
+
+        // Добавляем пользователя в комнату, если его ещё нет
         if (!chatRoom.getUsers().contains(user)) {
             chatRoom.getUsers().add(user);
             user.getChatRooms().add(chatRoom);
@@ -91,27 +94,7 @@ public class ChatController {
             logger.info("Пользователь " + user.getUsername() + " добавлен в комнату " + roomId);
         }
 
-        // Загружаем историю сообщений
-        List<Message> messageHistory = messageRepository.findByChatRoomIdOrderByTimestampAsc(chatRoom.getId());
-
-        // Отправляем историю только этому пользователю
-        List<ChatMessage> history = messageHistory.stream().map(m -> ChatMessage.builder()
-                .sender(m.getUser().getUsername())
-                .content(m.getContent())
-                .timestamp(m.getTimestamp().format(formatter))
-                .type(ChatMessage.MessageType.CHAT)
-                .roomId(roomId)
-                .build()).toList();
-
-        // Отправляем историю только новому пользователю
-        messagingTemplate.convertAndSendToUser(
-                chatMessage.getSender(),  // получатель
-                "/queue/history",         // его личная очередь
-                history
-        );
-
         // Оповещаем всех, что пользователь присоединился
         messagingTemplate.convertAndSend("/topic/chat/" + roomId, chatMessage);
-
     }
 }

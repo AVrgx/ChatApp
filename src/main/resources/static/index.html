@@ -245,39 +245,36 @@
 
   // Присоединение к комнате
   function joinRoom(roomName) {
-    if (currentRoom === roomName) return; // Избегаем повторного присоединения
+    if (currentRoom === roomName) return;
 
+    // Отписываемся от старой комнаты
     if (stompClient && currentRoom) {
       stompClient.unsubscribe('/topic/chat/' + currentRoom);
-      stompClient.unsubscribe('/user/queue/history');
     }
 
     currentRoom = roomName;
     document.getElementById('currentRoom').textContent = roomName;
     document.getElementById('chatMessages').innerHTML = '';
-    loadUsers(roomName);
-    loadMessages(roomName); // Загружаем историю через REST
 
-    // Подписка на историю сообщений через WebSocket
-    stompClient.subscribe('/user/queue/history', function (message) {
-      const history = JSON.parse(message.body);
-      console.log('Получена история сообщений через WebSocket:', history);
-      history.forEach(msg => showMessage(msg));
-    });
+    // Сначала загружаем историю через REST
+    loadMessages(roomName);
 
-    // Подписка на сообщения комнаты
+    // Затем подписываемся на новые сообщения
     stompClient.subscribe('/topic/chat/' + roomName, function (message) {
       const msg = JSON.parse(message.body);
       showMessage(msg);
       if (msg.type === 'JOIN') loadUsers(roomName);
     });
 
-    // Отправка сообщения о присоединении
+    // Уведомляем сервер о входе
     stompClient.send('/app/chat.addUser', {}, JSON.stringify({
       sender: username,
       roomId: roomName,
       type: 'JOIN'
     }));
+
+    // Обновляем список пользователей
+    loadUsers(roomName);
   }
 
   // Отображение сообщения

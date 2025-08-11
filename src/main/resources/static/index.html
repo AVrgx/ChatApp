@@ -130,8 +130,8 @@
               document.getElementById('authSection').classList.add('hidden');
               document.getElementById('chatSection').classList.remove('hidden');
               loadRooms();
-              loadUsers(currentRoom);
               connectWebSocket();
+              joinRoom('Public'); // Автоматически присоединяемся к Public при входе
             })
             .catch(error => {
               document.getElementById('loginError').classList.remove('hidden');
@@ -158,6 +158,7 @@
                     <div class="p-2 bg-gray-200 rounded cursor-pointer hover:bg-gray-300"
                          onclick="joinRoom('${room.name}')">${room.name}</div>
                 `).join('');
+              console.log('Загружены комнаты:', rooms);
             })
             .catch(error => console.error('Error loading rooms:', error));
   }
@@ -180,6 +181,7 @@
               userList.innerHTML = users.map(user => `
                     <div class="p-2 bg-gray-200 rounded">${user}</div>
                 `).join('');
+              console.log('Загружены участники:', users);
             })
             .catch(error => console.error('Error loading users:', error));
   }
@@ -198,8 +200,9 @@
               return response.json();
             })
             .then(messages => {
-              console.log('Получена история сообщений:', messages);
+              document.getElementById('chatMessages').innerHTML = ''; // Очищаем перед загрузкой
               messages.forEach(msg => showMessage(msg));
+              console.log('Получена история сообщений:', messages);
             })
             .catch(error => console.error('Error loading messages:', error));
   }
@@ -221,9 +224,10 @@
               return response.json();
             })
             .then(room => {
-              loadRooms();
+              loadRooms(); // Обновляем список комнат
               joinRoom(room.name);
               document.getElementById('roomName').value = '';
+              console.log('Создана комната:', room);
             })
             .catch(error => console.error('Error creating room:', error));
   }
@@ -234,7 +238,6 @@
     stompClient = Stomp.over(socket);
     stompClient.connect({}, function (frame) {
       console.log('Connected: ' + frame);
-      joinRoom(currentRoom);
     }, function (error) {
       console.error('WebSocket error:', error);
     });
@@ -242,15 +245,18 @@
 
   // Присоединение к комнате
   function joinRoom(roomName) {
-    if (stompClient && currentRoom !== roomName) {
+    if (currentRoom === roomName) return; // Избегаем повторного присоединения
+
+    if (stompClient && currentRoom) {
       stompClient.unsubscribe('/topic/chat/' + currentRoom);
-      stompClient.unsubscribe('/queue/history');
+      stompClient.unsubscribe('/user/queue/history');
     }
+
     currentRoom = roomName;
     document.getElementById('currentRoom').textContent = roomName;
     document.getElementById('chatMessages').innerHTML = '';
     loadUsers(roomName);
-    loadMessages(roomName); // Загрузка истории через REST
+    loadMessages(roomName); // Загружаем историю через REST
 
     // Подписка на историю сообщений через WebSocket
     stompClient.subscribe('/user/queue/history', function (message) {

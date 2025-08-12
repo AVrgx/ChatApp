@@ -113,6 +113,7 @@
     login(usernameInput, password);
   });
 
+  // Вход
   function login(usernameInput, password) {
     fetch('http://localhost:8080/auth/login', {
       method: 'POST',
@@ -129,13 +130,18 @@
               localStorage.setItem('accessToken', accessToken);
               document.getElementById('authSection').classList.add('hidden');
               document.getElementById('chatSection').classList.remove('hidden');
+
               loadRooms();
-              connectWebSocket();
-              joinRoom('Public'); // Автоматически присоединяемся к Public при входе
+
+              connectWebSocket(() => {
+                console.log('WebSocket подключён, заходим в Public');
+                // Здесь изменяем логику - сначала подписываемся, потом загружаем сообщения
+                joinRoom('Public', true); // Добавляем флаг первого входа
+              });
             })
             .catch(error => {
               document.getElementById('loginError').classList.remove('hidden');
-              console.error('Login error:', error);
+              document.getElementById('loginError').textContent = 'Ошибка входа: ' + error.message;
             });
   }
 
@@ -188,6 +194,7 @@
 
   // Загрузка истории сообщений через REST
   function loadMessages(roomName) {
+    console.log('🔍 loadMessages вызвана для комнаты:', roomName);
     fetch(`http://localhost:8080/api/rooms/${roomName}/messages`, {
       method: 'GET',
       headers: {
@@ -233,22 +240,31 @@
   }
 
   // Подключение к WebSocket
-  function connectWebSocket() {
+  function connectWebSocket(onConnected) {
+    if (!accessToken) {
+      console.error('❌ accessToken отсутствует!');
+      return;
+    }
+
     const socket = new SockJS('http://localhost:8080/ws?token=' + accessToken);
     stompClient = Stomp.over(socket);
+
     stompClient.connect({}, function (frame) {
-      console.log('Connected: ' + frame);
+      console.log('WebSocket подключен:', frame);
+      if (onConnected) onConnected();
     }, function (error) {
-      console.error('WebSocket error:', error);
+      console.error('❌ Ошибка WebSocket:', error);
+      alert('Не удалось подключиться к чату');
     });
   }
 
-  // Присоединение к комнате
-  function joinRoom(roomName) {
-    if (currentRoom === roomName) return;
 
-    // Отписываемся от старой комнаты
-    if (stompClient && currentRoom) {
+  // Присоединение к комнате
+  function joinRoom(roomName, isInitialJoin = false) {
+    if (currentRoom === roomName && !isInitialJoin) return;
+
+    // Отписываемся только от чата
+    if (stompClient && currentRoom && !isInitialJoin) {
       stompClient.unsubscribe('/topic/chat/' + currentRoom);
     }
 
@@ -256,10 +272,7 @@
     document.getElementById('currentRoom').textContent = roomName;
     document.getElementById('chatMessages').innerHTML = '';
 
-    // Сначала загружаем историю через REST
-    loadMessages(roomName);
-
-    // Затем подписываемся на новые сообщения
+    // Подписываемся на новые сообщения
     stompClient.subscribe('/topic/chat/' + roomName, function (message) {
       const msg = JSON.parse(message.body);
       showMessage(msg);
@@ -273,8 +286,9 @@
       type: 'JOIN'
     }));
 
-    // Обновляем список пользователей
+    // Загружаем пользователей и сообщения
     loadUsers(roomName);
+    loadMessages(roomName);
   }
 
   // Отображение сообщения
@@ -295,14 +309,20 @@
   // Отправка сообщения
   document.getElementById('messageForm').addEventListener('submit', function (e) {
     e.preventDefault();
-    const messageContent = document.getElementById('messageInput').value;
-    if (!messageContent) return;
-    stompClient.send('/app/chat.sendMessage', {}, JSON.stringify({
+    const messageContent = document.getElementById('messageInput').value.trim();
+    if (!messageContent || !stompClient || !stompClient.connected) {
+      console.warn('❌ Сообщение не отправлено: stompClient не подключён');
+      return;
+    }
+
+    const chatMessage = {
       sender: username,
       content: messageContent,
       roomId: currentRoom,
       type: 'CHAT'
-    }));
+    };
+
+    stompClient.send('/app/chat.sendMessage', {}, JSON.stringify(chatMessage));
     document.getElementById('messageInput').value = '';
   });
 </script>
